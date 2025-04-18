@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   getMenuItems, 
@@ -27,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Image } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const MenuManagement = () => {
@@ -43,10 +42,11 @@ const MenuManagement = () => {
     description: "",
     category: "",
   });
+  const [selectedImage, setSelectedImage] = useState<string>("/placeholder.svg");
+  const [imageUrl, setImageUrl] = useState<string>("");
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load menu items
     loadMenuItems();
   }, []);
 
@@ -63,6 +63,19 @@ const MenuManagement = () => {
     });
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setSelectedImage(base64String);
+        setImageUrl(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -70,6 +83,8 @@ const MenuManagement = () => {
       description: "",
       category: "",
     });
+    setSelectedImage("/placeholder.svg");
+    setImageUrl("");
   };
 
   const handleAddItem = () => {
@@ -98,7 +113,7 @@ const MenuManagement = () => {
         price,
         description: formData.description,
         category: formData.category,
-        image: "/placeholder.svg",
+        image: imageUrl || "/placeholder.svg",
       });
 
       setMenuItems([...menuItems, newItem]);
@@ -117,6 +132,19 @@ const MenuManagement = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const openEditDialog = (item: MenuItem) => {
+    setItemToEdit(item);
+    setFormData({
+      name: item.name,
+      price: item.price.toString(),
+      description: item.description || "",
+      category: item.category || "",
+    });
+    setSelectedImage(item.image || "/placeholder.svg");
+    setImageUrl(item.image || "");
+    setIsEditDialogOpen(true);
   };
 
   const handleEditItem = () => {
@@ -147,6 +175,7 @@ const MenuManagement = () => {
         price,
         description: formData.description,
         category: formData.category,
+        image: imageUrl,
       });
 
       if (updated) {
@@ -208,22 +237,6 @@ const MenuManagement = () => {
     }
   };
 
-  const openEditDialog = (item: MenuItem) => {
-    setItemToEdit(item);
-    setFormData({
-      name: item.name,
-      price: item.price.toString(),
-      description: item.description || "",
-      category: item.category || "",
-    });
-    setIsEditDialogOpen(true);
-  };
-
-  const openDeleteDialog = (item: MenuItem) => {
-    setItemToDelete(item);
-    setIsDeleteDialogOpen(true);
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex justify-between items-center mb-6">
@@ -235,7 +248,7 @@ const MenuManagement = () => {
               Add Menu Item
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Add New Menu Item</DialogTitle>
               <DialogDescription>
@@ -243,6 +256,27 @@ const MenuManagement = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="image-upload" className="text-right">
+                  Image
+                </Label>
+                <div className="col-span-3">
+                  <div className="mb-2">
+                    <img
+                      src={selectedImage}
+                      alt="Preview"
+                      className="w-32 h-32 object-cover rounded-md"
+                    />
+                  </div>
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="cursor-pointer"
+                  />
+                </div>
+              </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">
                   Name
@@ -307,6 +341,7 @@ const MenuManagement = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Image</TableHead>
               <TableHead>ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Price (₹)</TableHead>
@@ -318,13 +353,20 @@ const MenuManagement = () => {
           <TableBody>
             {menuItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={7} className="text-center py-4">
                   No menu items found. Add some items to get started.
                 </TableCell>
               </TableRow>
             ) : (
               menuItems.map((item) => (
                 <TableRow key={item.id}>
+                  <TableCell>
+                    <img
+                      src={item.image || "/placeholder.svg"}
+                      alt={item.name}
+                      className="w-12 h-12 object-cover rounded-md"
+                    />
+                  </TableCell>
                   <TableCell>{item.id}</TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>₹{item.price.toFixed(2)}</TableCell>
@@ -357,9 +399,8 @@ const MenuManagement = () => {
         </Table>
       </div>
 
-      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Edit Menu Item</DialogTitle>
             <DialogDescription>
@@ -367,6 +408,27 @@ const MenuManagement = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-image" className="text-right">
+                Image
+              </Label>
+              <div className="col-span-3">
+                <div className="mb-2">
+                  <img
+                    src={selectedImage}
+                    alt="Preview"
+                    className="w-32 h-32 object-cover rounded-md"
+                  />
+                </div>
+                <Input
+                  id="edit-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="cursor-pointer"
+                />
+              </div>
+            </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-name" className="text-right">
                 Name
@@ -426,7 +488,6 @@ const MenuManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
